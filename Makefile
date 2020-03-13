@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-W -Wall -ggdb -Iinclude/
+CFLAGS=-W -Wall -ggdb -Iinclude/ -Wno-unused-parameter -Wno-unused-variable
 TARGET=bin/stardust.exe
 
 SRCS := $(wildcard src/*.c)
