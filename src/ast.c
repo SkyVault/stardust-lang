@@ -56,8 +56,9 @@ StarObj* parseObject(StarLex* lexer) {
     if (token.T == TOK_ATOM) {
         object->T = STAR_OBJ_ATOM;
         object->len = token.end - token.start;
-        object->data = malloc(object->len + 1);
-        sprintf(object->data, "%.*s", (int)object->len, token.start);
+        object->data = malloc(object->len);
+        for (size_t i = 0; i < object->len; i++)
+            object->data[i] = token.start[i];
         return object;
     }
 
@@ -96,7 +97,6 @@ StarObj* starParseProgram(char* buff, size_t len) {
     StarLex lexer = starMakeAndLoadLexer(buff, len);
 
     StarObj* list = starNewObj(STAR_OBJ_LIST);
-
     StarObj* head = NULL;
 
     bool first = true;

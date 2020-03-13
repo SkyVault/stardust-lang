@@ -84,7 +84,8 @@ StarTok starNextToken(StarLex* lex) {
     // Lex atoms
     start = lex->it;
     while (lex->it != lex->end) {
-        if (lex->it == lex->end || isspace((*lex->it))) {
+        if (lex->it == lex->end || isspace((*lex->it)) ||
+            (*lex->it) == ')' || (*lex->it) == ']' || (*lex->it) == '}') {
             return (StarTok){
                 .T=TOK_ATOM,
                 .start=start,

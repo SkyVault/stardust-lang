@@ -21,10 +21,12 @@ struct StarObj;
 typedef struct StarObj {
     int T;
 
+    struct StarObj* value;
+    struct StarObj* next;
+
     union {
         double num;
         struct { size_t len; char* data; }; // String or Atom
-        struct { struct StarObj* value; struct StarObj* next; };
     };
 } StarObj;
 
