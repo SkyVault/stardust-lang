@@ -14,23 +14,26 @@ StarObj* starParseExpList(StarLex* lex);
 
 //<s-exp>      ::= <atom> | '(' <s-exp-list> ')'
 StarObj* starParseExpList(StarLex* lexer) {
-    StarObj* list = malloc(sizeof(StarObj));
+    StarObj* list = starNewObj(STAR_OBJ_LIST);
     StarObj* head = list;
 
-    list->T = STAR_OBJ_LIST;
+
+    bool first = true;
 
     while (notEof(lexer)) {
         StarTok token = starPeekToken(lexer);
 
         if (token.T == TOK_OPEN_PAREN) {
             StarObj* item = starParseSExpr(lexer);
-            list->next = item;
+            if (first) list->value = item;
+            else list->next = item;
             list = item;
         }
 
         if (isTerminal(&token)) {
             StarObj* item = starParseSExpr(lexer);
-            list->next = item;
+            if (first) list->value = item;
+            else list->next = item;
             list = item;
         }
 
@@ -38,6 +41,8 @@ StarObj* starParseExpList(StarLex* lexer) {
             starNextToken(lexer);
             return head;
         }
+
+        first = false;
     }
 
     return head;
@@ -46,8 +51,7 @@ StarObj* starParseExpList(StarLex* lexer) {
 StarObj* parseObject(StarLex* lexer) {
     StarTok token = starNextToken(lexer);
 
-    StarObj* object = malloc(sizeof(StarObj));
-    object->T = STAR_OBJ_NONE;
+    StarObj* object = starNewObj(STAR_OBJ_NONE);
 
     if (token.T == TOK_ATOM) {
         object->T = STAR_OBJ_ATOM;
@@ -91,16 +95,16 @@ StarObj* starParseProgram(char* buff, size_t len) {
 
     StarLex lexer = starMakeAndLoadLexer(buff, len);
 
-    StarObj* list = malloc(sizeof(StarObj));
-    list->T = STAR_OBJ_LIST;
+    StarObj* list = starNewObj(STAR_OBJ_LIST);
 
-    StarObj* head = list;
+    StarObj* head = NULL;
 
     bool first = true;
     while (notEof(&lexer)) {
         StarObj* sub = starParseSExpr(&lexer);
         if (first) {
-            head = list = sub;
+            list->value = sub;
+            head = list;
             first = false;
         } else {
             list->next = sub;

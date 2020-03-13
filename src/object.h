@@ -28,6 +28,8 @@ typedef struct StarObj {
     };
 } StarObj;
 
+StarObj* starNewObj(int T);
+
 #define STAR_NUM(n) (StarObj){.T=STAR_VAL_NUMBER, .num=(n)};
 
 #endif//STAR_OBJECT_H
