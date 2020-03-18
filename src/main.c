@@ -5,14 +5,26 @@
 #include "lexer.h"
 #include "object.h"
 #include "ast.h"
+#include "eval.h"
+
+StarObj* add(StarObj* args) {
+    return 0;
+}
 
 int main() {
     runTests();
 
-    /* char b[] = "(1 (2 3) 4)"; */
-    char b[] = "(69 (apple carrot) 4) (a b c)";
+    char b[] = "(add 1 2 3)";
+    StarEnv env = starMakeEnv();
 
-    StarObj* list = starParseProgram(b, strlen(b));
+    StarObj cfunc_add = (StarObj) {
+        .T = STAR_OBJ_C_FUNC,
+        .func = add
+    };
+
+    starPutInEnv(&env, &cfunc_add, "add", 3);
+
+    StarObj result = starEval(&env, b, strlen(b));
         
     return 0;
 }
