@@ -7,7 +7,7 @@
 #define MACROSTR(s) #s
 #endif//MACROSTR
 
-#define CIMPLE_VERSION_PATCH "0"
+#define CIMPLE_VERSION_PATCH "3"
 #define CIMPLE_VERSION_MINOR "2"
 #define CIMPLE_VERSION_MAJOR "0"
 #define CIMPLE_VERSION CIMPLE_VERSION_MAJOR "." CIMPLE_VERSION_MINOR "." CIMPLE_VERSION_PATCH
@@ -21,7 +21,7 @@
     #define CIMPLE_COLOR_CLEAR    "\033[m"
     #define CIMPLE_COLOR_SUB      "\033[36m"
     #define CIMPLE_COLOR_NUMBER   "\033[33;1m"
-    #define CIMPLE_COLOR_FUNC     "\033[38;1m"
+    #define CIMPLE_COLOR_FUNC     "\033[35;1m"
 #else
     #define CIMPLE_COLOR_FAIL     ""
     #define CIMPLE_COLOR_SUCC     ""
@@ -37,23 +37,31 @@ bool cimple_no_tests(char* os) {
 }
 
 #ifndef CIMPLE_TESTS
-#define CIMPLE_TESTS CTEST(cimple_no_tests),
+#define CIMPLE_TESTS CTEST(cimple_no_tests)
 #endif//CIMPLE_TESTS
 
 typedef bool (*cimple_test_fn)(char* os);
 
 void cimp_log(char* os, const char* fmt, ...) {
     va_list args;
+    va_start(args, fmt);
+
     sprintf(os+strlen(os), "%s%s", CIMPLE_COLOR_NUMBER, CIMPLE_ARROW);
     sprintf(os+strlen(os), "%s", CIMPLE_COLOR_SUB);
 
-    sprintf(os+strlen(os), fmt, args);
+    vsprintf(os+strlen(os), fmt, args);
 
     sprintf(os+strlen(os), "\n%s", CIMPLE_COLOR_CLEAR);
+
+    va_end(args);
 }
 
+#define CTEST(test) bool test (char* os);
+CIMPLE_TESTS
+#undef CTEST
+
 bool cimpleRunTests(){
-#define CTEST(test) { .name = MACROSTR(test), .fn = test }
+#define CTEST(test) { .name = MACROSTR(test), .fn = test },
     const struct { const char* name; cimple_test_fn fn; } tests[] = {
         CIMPLE_TESTS
     };

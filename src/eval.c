@@ -1,6 +1,6 @@
 #include "eval.h"
 
-StarObj* evalObj(StarObj* obj, StarObj* env) {
+StarObj* starEvalObj(StarEnv* env, StarObj* obj) {
     if (obj->T == STAR_OBJ_ATOM) {
         // Get value from env
 
@@ -15,45 +15,75 @@ StarObj* evalObj(StarObj* obj, StarObj* env) {
     return obj;
 }
 
-StarObj evalList(StarObj* branch, StarObj* env) {
+StarObj* evalList(StarEnv* env, StarObj* branch) {
     if (!branch->value) {
         printf("Failed to evaluate an empty list");
-        return STAR_NUM(0);
+        return starAllocNum(0);
     }
 
-    StarObj* first = evalObj(branch->value, env);
+    StarObj* args = branch->value;
+    StarObj* first = starEvalObj(env, args);
 
     if (!first) {
         printf("Failed to find (%.*s) in the env\n",
                (int)branch->value->len, branch->value->data);
-        return STAR_NUM(0);
+        return starAllocNum(0);
     }
 
-    //StarObj* args = evalObj(first->next, env);
-    
-    return STAR_NUM(1);
+    //StarObj* args = starEvalObj(first->next, env);
+    StarObj* list = starAllocList();
+
+    StarObj* evArgs = list;
+
+    bool fst = true;
+    while (args->next) {
+        args = args->next;
+
+        if (fst) {
+            list->value = starEvalObj(env, args);
+            list = list->value;
+            fst = false;
+        } else {
+            list->next = starEvalObj(env, args);
+            list = list->next;
+        }
+    }
+
+    StarObj* result = first->func(env, evArgs);
+    starRel(evArgs);
+    return result;
 }
 
-StarObj evalProgn(StarObj* tree, StarObj* env) {
-
-    StarObj* list = tree->value;
-    StarObj* branch = list;
+StarObj* evalProgn(StarEnv* env, StarObj* tree) {
+    StarObj* branch = tree->value;
 
     while (branch) {
-        evalList(branch, env);
+        branch->T = STAR_OBJ_LIST;
+
+        StarObj* result = evalList(env, branch);
+
+        if (branch->next == NULL) {
+            return result;
+        } else {
+            starRel(result);
+        }
+
         branch = branch->next;
     }
-    
-    return STAR_NUM(100);
+
+    return NULL;
 }
 
-StarObj starEval(StarEnv* env, char* buff, size_t len) {
+StarObj* starEvalProgn(StarEnv* env, StarObj* obj) {
+    return evalProgn(env, obj);
+}
+
+StarObj* starEval(StarEnv* env, char* buff, size_t len) {
     StarObj* tree = starParseProgram(buff, len);
 
-    StarObj result = evalProgn(tree, env);
+    StarObj* result = evalProgn(env, tree);
     
-    // Leak
-    free(tree);
+    starDeallocObj(tree);
 
     return result;
 }

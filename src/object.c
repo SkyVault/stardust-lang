@@ -1,17 +1,12 @@
 #include "object.h"
 
-StarObj* starNewObj(int T) {
-    StarObj* obj = malloc(sizeof(StarObj));
-    obj->T = T;
-    obj->value = NULL;
-    obj->next = NULL;
-    obj->num = 0.0f;
-    obj->len = 0;
-    obj->data = NULL;
-    return obj;
+StarObj* starNewEnv() {
+    StarObj* o = starAllocObj();
+    o->T = STAR_OBJ_TABLE;
+    o->value = NULL;
+    o->next = NULL;
+    return o;
 }
-
-StarObj* starNewEnv() { return starNewObj(STAR_OBJ_TABLE); }
 
 StarObj starMakeEnv() {
     StarObj obj;
@@ -25,7 +20,7 @@ StarObj starMakeEnv() {
 }
 
 
-StarObj* starPutInEnv(StarEnv* env, StarObj* obj, char* key, size_t key_len) {
+StarObj* starPutInEnv(StarEnv* env, StarObj* obj, const char* key) {
     assert(env->T == STAR_OBJ_TABLE);
 
     /*
@@ -37,18 +32,26 @@ StarObj* starPutInEnv(StarEnv* env, StarObj* obj, char* key, size_t key_len) {
     StarObj* this = malloc(sizeof(StarObj));
     this->value = obj;
 
-    this->len = key_len;
-    this->data = key;
+    this->len = strlen(key);
 
-    while (env->next != NULL) env = env->next;
+    const size_t len = strlen(key);
+    this->data = malloc(len+1);
+    this->data[len] = '\0';
+    for (size_t i = 0; i < len; i++)
+        this->data[i] = key[i];
 
-    env->next = this;
+    StarObj* place = env;
+    while (place->next != NULL)
+        place = place->next;
+    place->next = this;
 
     return obj;
 }
 
 StarObj* starGetFromEnv(StarEnv* env, const char* key) {
-    while (env->next != NULL) {
+    env = env->next;
+
+    while (env != NULL) {
         if (env->len == strlen(key)){
             bool match = true;
             for (size_t i = 0; i < env->len; i++)
@@ -79,4 +82,148 @@ StarObj* starCar(StarObj* cons) {
 
 StarObj* starCdr(StarObj* cons) {
     return cons->next;
+}
+
+StarObj* starCons(StarObj* list, StarObj* el) {
+    el->value = list->value;
+    el->next = list->next;
+    list->value = NULL;
+    return list;
+}
+
+void starListAdd(StarObj* list, StarObj* item) {
+    StarObj* first = list->value;
+    if (!first) {
+        list->value = item;
+        return;
+    }
+
+    while (first) {
+        if (!first->next) {
+            first->next = item;
+            return;
+        } 
+        first = first->next;
+    }
+}
+
+StarObj* starAllocNum(double num) {
+    StarObj* o = malloc(sizeof(StarObj));
+    o->T = STAR_OBJ_NUMBER;
+    o->refcount = 1;
+    o->num = num;
+    return o;
+}
+
+StarObj* starAllocCFunc(StarCFunc func) {
+    StarObj* o = malloc(sizeof(StarObj));
+    o->T = STAR_OBJ_NUMBER;
+    o->refcount = 1;
+    o->func = func;
+    return o;
+}
+
+StarObj* starAllocList() {
+    StarObj* o = malloc(sizeof(StarObj));
+    o->T = STAR_OBJ_LIST;
+    o->value = NULL;
+    o->next = NULL;
+    o->refcount = 1;
+    return o;
+}
+
+StarObj* starAllocObj() {
+    StarObj* o = malloc(sizeof(StarObj));
+    o->T = STAR_OBJ_NONE;
+    o->refcount = 1;
+    return o;
+}
+
+StarObj* starRef(StarObj* object) {
+    object->refcount++;
+    return object;
+}
+
+StarObj* starRel(StarObj* object) {
+    object->refcount--;
+
+    if (object->refcount <= 0){
+        starDeallocObj(object);
+    }
+
+    return (object->refcount <= 0 ? NULL : object);
+}
+
+void starDeallocObj(StarObj* object) {
+    switch (object->T) {
+        case STAR_OBJ_NUMBER: {
+            free(object);
+            return;
+        }
+
+        case STAR_OBJ_ATOM:
+        case STAR_OBJ_STRING: {
+            if (object->data)
+                free(object->data);
+            object->data = NULL;
+            free(object);
+            return;
+        }
+
+        case STAR_OBJ_LIST: {
+            StarObj* first = object->value;
+            starRel(first);
+
+            if (first && first->refcount > 0) {
+                do  {
+                    starRel(first);
+                    first = first->next;
+                } while(first);
+            }
+
+            return;
+        }
+
+        default: {
+            printf("Unimplemented destructor for object type %s\n",
+                   StarObjS[object->T]);
+            return;
+        }
+    }
+}
+
+#define BUFF_SIZE (512)
+
+void printObjRec(StarObj* o, char* os) {
+    switch (o->T) {
+        case STAR_OBJ_NUMBER: {
+            sprintf(strlen(os)+os, "%f", o->num);
+            return;
+        }
+
+        case STAR_OBJ_ATOM:
+        case STAR_OBJ_STRING: {
+            sprintf(strlen(os)+os, "%.*s", (int)o->len, o->data);
+            return;
+        }
+
+        case STAR_OBJ_LIST: {
+            sprintf(strlen(os)+os, "(");
+            StarObj* it = o->value;
+            while (it) {
+                printObjRec(it, os);
+                if (it->next != NULL)
+                    sprintf(strlen(os)+os, " ");
+                it = it->next;
+            }
+            sprintf(strlen(os)+os, ")");
+            return;
+        }
+    }
+}
+
+void starPrintObj(StarObj* object) {
+    char os[BUFF_SIZE] = {'\0'};
+    printObjRec(object, os);
+    printf("%s\n", os);
 }

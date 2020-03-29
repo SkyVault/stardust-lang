@@ -5,6 +5,8 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <string.h>
+#include <inttypes.h>
+#include <stdio.h>
 
 #include "star.h"
 
@@ -22,13 +24,15 @@ enum StarObjE {STAR_OBJ_TYPES(GEN_ENUM)};
 static const char* StarObjS[] = {STAR_OBJ_TYPES(GEN_STR)};
 
 struct StarObj;
-typedef struct StarObj* (*StarCFunc)(struct StarObj*);
+typedef struct StarObj* (*StarCFunc)(struct StarObj*, struct StarObj*);
 
 typedef struct StarObj {
     int T;
 
     struct StarObj* value;
     struct StarObj* next;
+
+    uint32_t refcount;
 
     union {
         double num;
@@ -41,16 +45,32 @@ typedef StarObj StarEnv;
 
 StarObj* starCar(StarObj* cons);
 StarObj* starCdr(StarObj* cons);
+StarObj* starCons(StarObj* list, StarObj* el);
+
+void starListAdd(StarObj* list, StarObj* item);
 
 StarObj* starNewObj(int T);
 StarObj* starNewEnv();
 StarObj starMakeEnv();
 
-StarObj* starPutInEnv(StarEnv* env, StarObj* obj, char* key, size_t key_len);
+StarObj* starPutInEnv(StarEnv* env, StarObj* obj, const char* key);
 StarObj* starGetFromEnv(StarEnv* env, const char* key);
 bool starIsKeyInEnv(StarEnv* env, const char* key);
 bool starIsObjInEnv(StarEnv* env, StarObj* obj);
 
-#define STAR_NUM(n) (StarObj){.T=STAR_OBJ_NUMBER, .num=(n)};
+StarObj* starAllocNum(double num);
+StarObj* starAllocCFunc(StarCFunc func);
+StarObj* starAllocList();
+StarObj* starAllocObj();
+
+StarObj* starRel(StarObj* object);
+StarObj* starRef(StarObj* object);
+
+void starDeallocObj(StarObj* object);
+
+void starPrintObj(StarObj* object);
+
+#define STAR_NUM(n) (StarObj){.T=STAR_OBJ_NUMBER, .num=(n)}
+#define STAR_CFUNC(fn) (StarObj){.T=STAR_OBJ_C_FUNC, .func=(fn)}
 
 #endif//STAR_OBJECT_H

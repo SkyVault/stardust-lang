@@ -104,6 +104,10 @@ bool notEof(StarLex* lex) { return lex->it != lex->end; }
 
 StarTok starPeekToken(StarLex* lex) {
     char* start = lex->it;
+
+    while (start != lex->end && isspace(*start))
+        start++;
+
     StarTok result = starNextToken(lex);
     lex->it = start;
     return result;

@@ -7,6 +7,8 @@
 #include "ast.h"
 #include "object.h"
 
-StarObj starEval(StarEnv* env, char* buff, size_t len);
+StarObj* starEvalObj(StarObj* env, StarObj* obj);
+StarObj* starEvalProgn(StarObj* env, StarObj* obj);
+StarObj* starEval(StarEnv* env, char* buff, size_t len);
 
 #endif//STAR_EVAL_H
